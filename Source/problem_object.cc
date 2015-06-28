@@ -39,7 +39,7 @@ Utilities::ProblemObject::ProblemObject(string filename) {
 	this->width = extract_int(file_object->find("width"));
 
 	/*
-	Now we want to get the list of blockers (squares in the grid that are invalid for routing), however since
+	Now we want to get the list of blockers (squares in the Map that are invalid for routing), however since
 	there are many of these in one problem, we represent them in the JSON object as an array
 	*/
 	JsonValue* list = file_object->find("blockerList");

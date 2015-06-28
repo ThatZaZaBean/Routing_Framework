@@ -1,5 +1,5 @@
 
-#include "../Headers/grid.h"
+#include "../Headers/Map.h"
 #include "../Headers/problem_object.h"
 #include <time.h>
 #include <cstdlib>
@@ -13,18 +13,18 @@ int main(int argc,char* argv[]) {
 
 	// DO NOT CHANGE THIS SECTION OF CODE
 	if(argc < 2) { 
-		cout << "Usage: ./grid_router <test_file>" << endl; 
+		cout << "Usage: ./Map_router <test_file>" << endl; 
 		exit(1);
 	}
 	Utilities::ProblemObject* first_problem = new Utilities::ProblemObject(std::string(argv[1]));
 	// EDIT FROM HERE DOWN
 
-	//Create your problem map object (in our example, we use a simple grid, you should create your own)
-	Utilities::Grid g(first_problem);
+	//Create your problem map object (in our example, we use a simple Map, you should create your own)
+	Utilities::Map g(first_problem);
 
 	/*
 	Note: we do not take into account the connections or blockers that exist in the Project Object
-	You should be accouting for these in your problem map objects (you should not be using Grid). You
+	You should be accouting for these in your problem map objects (you should not be using Map). You
 	should be using both the Node and Edge classes as the background for whatever problem map object
 	you create.
 	*/
@@ -36,7 +36,7 @@ int main(int argc,char* argv[]) {
 	Path: a series of straight line segments, with a single source and a single sink
 	Netlist: a series of stright line segments, with a single source and more than one sink
 	*/
-	vector<Path*> paths = g.test_algorithm();
+	vector<Path*> paths = g.lee();
 
 	//Print the paths/netlists that you return from your algorithm
 	for(unsigned i = 0; i < paths.size(); i++) {

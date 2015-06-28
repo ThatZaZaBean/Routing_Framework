@@ -30,7 +30,7 @@ OBJS=json_value.o\
 TESTFN=partition_test.json
 
 # C++ compiler
-CXXFLAGS=-Wall -ansi -pedantic 
+CXXFLAGS=-std=gnu++0x -D_POSIX_SOURCE -Wall -ansi -pedantic 
 LIBFLAGS=-shared
 CXXLIB=-fPIC
 CXXINC=-I$(INC) -I../Headers/ -I./ 
