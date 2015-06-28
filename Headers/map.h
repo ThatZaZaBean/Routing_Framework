@@ -43,7 +43,7 @@ namespace Utilities {
 		bool validate_connections(Connection connections);	//TODO: want base algorithm up first
 		// void set_connections(vector<Connection> connections); // don't need...?
 		void wave_expansion(Node* cur_node);	// added
-		Path* backtrace(Node* cur_node);    // added
+		Path* backtrace(Node* cur_node, Path* path);    // added
 		void add_path(Path* path);
 		void replace_path(int i, Path* path);
 		void remove_path(int i);

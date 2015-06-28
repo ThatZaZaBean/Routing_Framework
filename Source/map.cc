@@ -252,9 +252,10 @@ vector<Path*> Utilities::Map::lee() {
 	connection_loop:
 	for (unsigned int i = 0; i < max_connections; i++)
 	{		
-		/*if (!(this->validate_connections(blockers.at(i), max_width, max_height))) { // checks if source/sink are valid
+		if (!(this->validate_connections(connections.at(i)))) { // checks if source/sink are valid
 			++i;
-			goto connection_loop; */
+			goto connection_loop;
+		}
 
 		// Reset map costs after each iteration
 		for (unsigned int x = 0; x < max_width; x++)
@@ -266,20 +267,48 @@ vector<Path*> Utilities::Map::lee() {
 				}
 			}
 		}
+
 		//TODO check if source is also sink
 
 		Node* source = this->map.at(this->connections.at(i).source.x).at(this->connections.at(i).source.y);
-		source->set_cost(-2);
-		//start_node->set_cost(0);  // just testing stuff
+		source->set_cost(-2); 
 		Node* sink = this->map.at(this->connections.at(i).sink.x).at(this->connections.at(i).sink.y);
 		sink->set_cost(-3); // once we find -3. we're done
 
-		this->wave_expansion(source);
+		this->wave_expansion(source);    // Fills out map with all node costs
 		found_end = false;
-		this->backtrace(sink);
+
+		Path* new_path = new Path();
+		paths.push_back(this->backtrace(sink, new_path));    // Determines the lowest cost path and pushes it onto paths
 	}
 }
 
+/*
+
+Parameter connections (Connection): The current source and sink
+Return Bool: Whether or not the source and sink are within bounds
+
+*/
+bool Utilities::Map::validate_connections(Connection connections) {
+
+	if (connections.source.x < 0 || connections.source.x) {
+		claim("The connections source is invalid (negative) !!", kError);
+		return false;
+	}
+	else if (connections.sink.x || connections.sink.y) {
+		claim("The connections sink is invalid (negative) !!", kError);
+		return false;
+	}
+	else if (connections.source.x > this->get_width() || connections.source.y > this->get_height()) {
+		claim("The connections source is invalid (out of bounds) !!", kError);
+		return false;
+	}
+	else if (connections.sink.x > this->get_width() || connections.sink.y > this->get_height()) {
+		claim("The connections sink is invalid (out of bounds) !!", kError);
+		return false;
+	}
+	return true;
+}
 
 /*
 
@@ -310,7 +339,6 @@ void Utilities::Map::wave_expansion(Node* cur_node){ // not quite right, pretty 
 		found_end = true;
 	}
 	else if ((up->get_cost() <= (cur_node->get_cost())) && up->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
-		//up->set_cost(cur_node->get_cost() + 1);
 		// do nothing, no need to update
 	}
 	else { 
@@ -375,13 +403,13 @@ void Utilities::Map::wave_expansion(Node* cur_node){ // not quite right, pretty 
 
 /*
 
-Parameter cur_node (Node*): The current map position.
-Used to recursively update the most efficient path
-Return nothing.
+Parameter cur_node (Node*): The current map position
+          path (Path*): The current list of (points)?
+Return Path*: The shortest path as determined by lee's algorithm
 
 */
-Path* Utilities::Map::backtrace(Node* cur_node) {
-
+Path* Utilities::Map::backtrace(Node* cur_node, Path* path) {
+	/*
 	vector<Path*> paths;
 	srand(time(NULL));
 	int number_paths = this->get_num_connections();
@@ -400,18 +428,37 @@ Path* Utilities::Map::backtrace(Node* cur_node) {
 		}
 		paths.push_back(new_path);
 	}
-	//return paths;
+	*/
 
+	// first push cur_node onto path
+	// figure out how to do this and we're done
 
+	if (cur_node->get_cost() == -2) {
+		return path;
+	}	
 
-	Path* new_path = new Path();
-	while (true)
-	{
+	// might be out of bounds stuff now that I think about it t.t
+	// can just use set_x/y_coord if there is an issue
+	Node* up = this->get_node(cur_node->get_x(), cur_node->get_y() + 1);
+	Node* down = this->get_node(cur_node->get_x(), cur_node->get_y() - 1);
+	Node* right = this->get_node(cur_node->get_x() + 1, cur_node->get_y());
+	Node* left = this->get_node(cur_node->get_x() - 1, cur_node->get_y());
 
+    // all we are doing is looking for the current cost - 1, then backtracing from there
+	if ((up->get_cost() == cur_node->get_cost() - 1) || up->get_cost() == -2 ) {	
+		backtrace(up, path);
 	}
-
-
-
-
-
+	else if ((down->get_cost() == cur_node->get_cost() - 1) || down->get_cost() == -2) {
+		backtrace(down, path);
+	}
+	else if ((right->get_cost() == cur_node->get_cost() - 1) || right->get_cost() == -2) {
+		backtrace(right, path);
+	}
+	else if ((left->get_cost() == cur_node->get_cost() - 1) || left->get_cost() == -2) {
+		backtrace(left, path);
+	}
+	else {
+		claim("Unknown pathing error occured!", kError);
+		return path;
+	}
 }
