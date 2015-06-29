@@ -40,10 +40,11 @@ namespace Utilities {
 		void set_paths(vector<Path*> paths);
 		bool validate_blockers(Blocker block, int max_width, int max_height); // added
 		void set_blockers(vector<Blocker> blockers);    // added
-		bool validate_connections(Connection connections);	//TODO: want base algorithm up first
+		bool validate_connections(Connection connections);    //added first
 		// void set_connections(vector<Connection> connections); // don't need...?
 		void wave_expansion(Node* cur_node);	// added
-		Path* backtrace(Node* cur_node, Path* path);    // added
+		Path* backtrace(Node* sink, Path* path);    // added
+        bool traceable(Node* sink);    // added
 		void add_path(Path* path);
 		void replace_path(int i, Path* path);
 		void remove_path(int i);

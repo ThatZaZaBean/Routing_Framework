@@ -120,6 +120,7 @@ void Utilities::Map::print_map()
 {
 	int max_height = this->get_height();
 	int max_width = this->get_width();
+    printf("\n\n");
 	for (unsigned int x = 0; x < max_width; x++)
 	{
 		for (unsigned int y = 0; y < max_height; y++)
@@ -128,6 +129,7 @@ void Utilities::Map::print_map()
 		}
 		printf("\n");
 	}
+    printf("\n");
 }
 
 // New Mutator(s) Here
@@ -153,21 +155,19 @@ void Utilities::Map::set_blockers(vector<Blocker> blockers) {
 
 		x = blockers.at(i).location.x;
 		y = blockers.at(i).location.y;
-
+        
 		// Remove block from map
-		for (; x < blockers.at(i).width; x++)
+		for (unsigned int x_coord = 0; x_coord < blockers.at(i).width; x_coord++)
 		{
-			for (; y < blockers.at(i).height; y++)
+			for (unsigned int y_coord = 0; y_coord < blockers.at(i).height; y_coord++)
 			{
-				this->map.at(x).at(y)->set_cost(-1);	// ignore negative costs
-				/*while (!this->map.at(x).at(y).connections_empty())
-				{
-					this->map.at(x).at(y).remove_connection(this->map.at(x).at(y).connections_at(0));
-				}*/
+				map.at(y + y_coord).at(x + x_coord)->set_cost(-1);   // we treat -1 as a wall          
 			}
 		}
 	}
+    this->print_map();
 }
+
 /*
 	Parameter block (Blocker): The current block to validate
 	          max_width/max_height: passed in so that they wouldn't have to be continuously calculated
@@ -248,9 +248,10 @@ vector<Path*> Utilities::Map::lee() {
 	int max_connections = this->get_num_connections();
 	
 	int max_height = this->get_height(), max_width = this->get_width();
-
+    unsigned int i = 0;
+    
 	connection_loop:
-	for (unsigned int i = 0; i < max_connections; i++)
+	for (; i < max_connections; i++)
 	{		
 		if (!(this->validate_connections(connections.at(i)))) { // checks if source/sink are valid
 			++i;
@@ -268,19 +269,33 @@ vector<Path*> Utilities::Map::lee() {
 			}
 		}
 
+        this->print_map();
+        
 		//TODO check if source is also sink
 
 		Node* source = this->map.at(this->connections.at(i).source.x).at(this->connections.at(i).source.y);
 		source->set_cost(-2); 
 		Node* sink = this->map.at(this->connections.at(i).sink.x).at(this->connections.at(i).sink.y);
 		sink->set_cost(-3); // once we find -3. we're done
+        this->print_map();
+
+        if ( source == sink ) {    // Check if source is sink
+            ++i;
+            Path* new_path = new Path();
+            new_path->set_source(Point(source->get_x(), source->get_y()));
+            new_path->set_sink(Point(source->get_x(), source->get_y()));
+            paths.push_back(new_path);
+            goto connection_loop;
+        }
 
 		this->wave_expansion(source);    // Fills out map with all node costs
 		found_end = false;
+        this->print_map();
 
 		Path* new_path = new Path();
 		paths.push_back(this->backtrace(sink, new_path));    // Determines the lowest cost path and pushes it onto paths
 	}
+    return paths;
 }
 
 /*
@@ -291,11 +306,11 @@ Return Bool: Whether or not the source and sink are within bounds
 */
 bool Utilities::Map::validate_connections(Connection connections) {
 
-	if (connections.source.x < 0 || connections.source.x) {
+	if (connections.source.x < 0 || connections.source.x < 0) {
 		claim("The connections source is invalid (negative) !!", kError);
 		return false;
 	}
-	else if (connections.sink.x || connections.sink.y) {
+	else if (connections.sink.x < 0|| connections.sink.y < 0) {
 		claim("The connections sink is invalid (negative) !!", kError);
 		return false;
 	}
@@ -319,146 +334,381 @@ Return nothing.
 */
 void Utilities::Map::wave_expansion(Node* cur_node){ // not quite right, pretty sure this infinite loops
 
-	if (found_end){ // done with wave expansion
-		return;
-	}
-
-	Node* up = this->get_node(cur_node->get_x(), cur_node->get_y() + 1);
-	Node* down = this->get_node(cur_node->get_x(), cur_node->get_y() - 1);
-	Node* right = this->get_node(cur_node->get_x() + 1, cur_node->get_y());
-	Node* left = this->get_node(cur_node->get_x() - 1, cur_node->get_y());
-	
-	// Up
-	if (up->get_y() > this->get_height()) { // check if still within map first
-		// do nothing, hit the top
-	}
-	else if (up->get_cost() == -1 || up->get_cost() == -2) { // check if part of a block
-		// do nothing, hit a wall
-	}
-	else if (up->get_cost() == -3) { // check if we hit the sink
-		found_end = true;
-	}
-	else if ((up->get_cost() <= (cur_node->get_cost())) && up->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
-		// do nothing, no need to update
-	}
-	else { 
-		up->set_cost(cur_node->get_cost() + 1);
-		wave_expansion(up);
-	}
-
-	// Down
-	if (down->get_y() < 0) { // check if still within map first
-		// do nothing, hit the top
-	}
-	else if (down->get_cost() == -1 || down->get_cost() == -2) { // check if part of a block or source
-		// do nothing, hit the bottom or source
-	}
-	else if (down->get_cost() == -3) { // check if we hit the sink
-		found_end = true;
-	}
-	else if ((down->get_cost() <= (cur_node->get_cost())) && down->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
-		// do nothing, no need to update
-	}
-	else {
-		down->set_cost(cur_node->get_cost() + 1);
-		wave_expansion(down);
-	}
-
-	// Right
-	if (right->get_y() > this->get_width()) { // check if still within map first
-		// do nothing, hit the top
-	}
-	else if (right->get_cost() == -1 || right->get_cost() == -2) { // check if part of a block or source
-		// do nothing, hit the edge or source
-	}
-	else if (right->get_cost() == -3) { // check if we hit the sink
-		found_end = true;
-	}
-	else if ((right->get_cost() <= (cur_node->get_cost())) && right->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
-		// do nothing, no need to update
-	}
-	else {
-		right->set_cost(cur_node->get_cost() + 1);
-		wave_expansion(right);
-	}
-
-	// Left
-	if (left->get_y() < 0) { // check if still within map first
-		// do nothing, hit the edge
-	}
-	else if (left->get_cost() == -1 || left->get_cost() == -2) { // check if part of a block or source
-		// do nothing, hit a wall or source or source
-	}
-	else if (left->get_cost() == -3) { // check if we hit the sink
-		found_end = true;
-	}
-	else if ((left->get_cost() <= (cur_node->get_cost())) && left->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
-		// do nothing, no need to update
-	}
-	else {
-		left->set_cost(cur_node->get_cost() + 1);
-		wave_expansion(left);
-	}
+    /*
+     * I need a better way of determining when to end. As of right now it gives a single solution
+     * before all solutions are calculated. My only current fix to this is is to disable the return
+     * statement. The algorithm then calculates EVERY node, and that is far too slow for
+     * practical usage, even though it gives a correct mapping.
+     * */
+	//if (found_end){ // done with wave expansion
+		//return; 
+	//}
+    
+    // Up
+    if (cur_node->get_y() + 1 < this->get_height()) { // Check bounds
+        
+        Node* up = this->get_node(cur_node->get_x(), cur_node->get_y() + 1);        
+        if (up->get_cost() == -1 || up->get_cost() == -2) { // check if part of a block
+		    // do nothing, hit a wall
+	    }
+	    else if (up->get_cost() == -3) { // check if we hit the sink
+		    found_end = true;
+            up->set_cost(cur_node->get_cost() + 1); // replace sink's old cost w/ real cost
+	    }
+	    else if ((up->get_cost() <= (cur_node->get_cost())) && up->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
+		    // do nothing, no need to update
+	    }
+	    else { 
+            if (cur_node->get_cost() == -2 ) { // if cur node is the start node
+                up->set_cost(1);
+                wave_expansion(up);
+            }
+            else {                
+                up->set_cost(cur_node->get_cost() + 1);
+                wave_expansion(up);
+            }
+	    }
+    }
+    // Down
+    if (cur_node->get_y() - 1 >= 0) {
+        
+        Node* down = this->get_node(cur_node->get_x(), cur_node->get_y() - 1);
+        if (down->get_cost() == -1 || down->get_cost() == -2) { // check if part of a block or source
+            // do nothing, hit the bottom or source
+        }
+        else if (down->get_cost() == -3) { // check if we hit the sink
+            found_end = true;
+            down->set_cost(cur_node->get_cost() + 1); // replace sink's old cost w/ real cost
+        }
+        else if ((down->get_cost() <= (cur_node->get_cost())) && down->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
+            // do nothing, no need to update
+        }
+        else {
+            if (cur_node->get_cost() == -2 ) { // if cur node is the start node
+                down->set_cost(1);
+                wave_expansion(down);
+            }
+            else {                
+                down->set_cost(cur_node->get_cost() + 1);
+                wave_expansion(down);
+            }
+        }
+    }    
+    // Right
+    if (cur_node->get_x() + 1 < this->get_width()) {
+        
+        Node* right = this->get_node(cur_node->get_x() + 1, cur_node->get_y());
+        if (right->get_cost() == -1 || right->get_cost() == -2) { // check if part of a block or source
+            // do nothing, hit the bottom or source
+        }
+        else if (right->get_cost() == -3) { // check if we hit the sink
+            found_end = true;
+            right->set_cost(cur_node->get_cost() + 1); // replace sink's old cost w/ real cost
+        }
+        else if ((right->get_cost() <= (cur_node->get_cost())) && right->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
+            // do nothing, no need to update
+        }
+        else {
+            if (cur_node->get_cost() == -2 ) { // if cur node is the start node
+                right->set_cost(1);
+                wave_expansion(right);
+            }
+            else {                
+                right->set_cost(cur_node->get_cost() + 1);
+                wave_expansion(right);
+            }
+        }
+    }
+    // Left
+    if (cur_node->get_x() - 1 >= 0) {
+     
+        Node* left = this->get_node(cur_node->get_x() - 1, cur_node->get_y());
+        if (left->get_cost() == -1 || left->get_cost() == -2) { // check if part of a block or source
+            // do nothing, hit a wall or source or source
+        }
+        else if (left->get_cost() == -3) { // check if we hit the sink
+            found_end = true;
+            left->set_cost(cur_node->get_cost() + 1); // replace sink's old cost w/ real cost
+        }
+        else if ((left->get_cost() <= (cur_node->get_cost())) && left->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
+            // do nothing, no need to update
+        }
+        else {
+            if (cur_node->get_cost() == -2 ) { // if cur node is the start node
+                left->set_cost(1);
+                wave_expansion(left);
+            }
+            else {                
+                left->set_cost(cur_node->get_cost() + 1);
+                wave_expansion(left);
+            };
+        }
+    }
+    
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+    /*
+    srand(time(NULL));    
+    while(!found_end)
+    {
+        int path_choice = rand() % 4;
+        
+        if (path_choice == 1) {    // Up            
+            if (cur_node->get_y() + 1 < this->get_height()) { // Check bounds
+                
+                int old_cost = cur_node->get_cost(); // Save previous cost                
+                cur_node = this->get_node(cur_node->get_x(), cur_node->get_y() + 1); 
+                       
+                if (cur_node->get_cost() == -1 || cur_node->get_cost() == -2) { // check if part of a block
+                    // hit a wall, go back to old spot
+                    cur_node = this->get_node(cur_node->get_x(), cur_node->get_y() - 1);
+                }
+                else if (cur_node->get_cost() == -3) { // check if we hit the sink
+                    found_end = true;
+                }
+                else if ((cur_node->get_cost() <= old_cost ) && cur_node->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
+                    // do nothing, no need to update
+                }
+                else { 
+                    if (old_cost == -2 ) { // if cur node is the start node
+                        cur_node->set_cost(1);
+                    }
+                    else {                
+                        cur_node->set_cost(old_cost + 1);
+                    }
+                }
+            } 
+        }
+        else if (path_choice == 2) {   // Down
+        
+            if (cur_node->get_y() - 1 >= 0) { // Check bounds
+                
+                int old_cost = cur_node->get_cost(); // Save previous cost                
+                cur_node = this->get_node(cur_node->get_x(), cur_node->get_y() - 1); 
+                       
+                if (cur_node->get_cost() == -1 || cur_node->get_cost() == -2) { // check if part of a block
+                    // hit a wall, go back to old spot
+                    cur_node = this->get_node(cur_node->get_x(), cur_node->get_y() + 1);
+                }
+                else if (cur_node->get_cost() == -3) { // check if we hit the sink
+                    found_end = true;
+                }
+                else if ((cur_node->get_cost() <= old_cost ) && cur_node->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
+                    // do nothing, no need to update
+                }
+                else { 
+                    if (old_cost == -2 ) { // if cur node is the start node
+                        cur_node->set_cost(1);
+                    }
+                    else {                
+                        cur_node->set_cost(old_cost + 1);
+                    }
+                }
+            } 
+        }
+        else if (path_choice == 3) {   // Left
+        
+            if (cur_node->get_x() - 1 >= 0) { // Check bounds
+                
+                int old_cost = cur_node->get_cost(); // Save previous cost                
+                cur_node = this->get_node(cur_node->get_x(), cur_node->get_y() - 1); 
+                       
+                if (cur_node->get_cost() == -1 || cur_node->get_cost() == -2) { // check if part of a block
+                    // hit a wall, go back to old spot
+                    cur_node = this->get_node(cur_node->get_x() + 1, cur_node->get_y());
+                }
+                else if (cur_node->get_cost() == -3) { // check if we hit the sink
+                    found_end = true;
+                }
+                else if ((cur_node->get_cost() <= old_cost ) && cur_node->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
+                    // do nothing, no need to update
+                }
+                else { 
+                    if (old_cost == -2 ) { // if cur node is the start node
+                        cur_node->set_cost(1);
+                    }
+                    else {                
+                        cur_node->set_cost(old_cost + 1);
+                    }
+                }
+            } 
+        }
+        else if (path_choice == 4) {   // Right
+            
+            if (cur_node->get_x() + 1 < this->get_width()) { // Check bounds
+                
+                int old_cost = cur_node->get_cost(); // Save previous cost                
+                cur_node = this->get_node(cur_node->get_x(), cur_node->get_y() - 1); 
+                       
+                if (cur_node->get_cost() == -1 || cur_node->get_cost() == -2) { // check if part of a block
+                    // hit a wall, go back to old spot
+                    cur_node = this->get_node(cur_node->get_x() - 1, cur_node->get_y());
+                }
+                else if (cur_node->get_cost() == -3) { // check if we hit the sink
+                    found_end = true;
+                }
+                else if ((cur_node->get_cost() <= old_cost ) && cur_node->get_cost() > 0) { // check if a node with higher cost tries to overwrite another node
+                    // do nothing, no need to update
+                }
+                else { 
+                    if (old_cost == -2 ) { // if cur node is the start node
+                        cur_node->set_cost(1);
+                    }
+                    else {                
+                        cur_node->set_cost(old_cost + 1);
+                    }
+                }
+            }
+        }
+        
+    }*/
+    //return;
 }
 
 /*
 
-Parameter cur_node (Node*): The current map position
+Parameter sink (Node*): The point to begin backtracing
           path (Path*): The current list of (points)?
 Return Path*: The shortest path as determined by lee's algorithm
 
 */
-Path* Utilities::Map::backtrace(Node* cur_node, Path* path) {
-	/*
-	vector<Path*> paths;
-	srand(time(NULL));
-	int number_paths = this->get_num_connections();
-	for (int i = 0; i < number_paths; i++) {
-		Path* new_path = new Path();
-		int x = rand() % this->get_width();
-		int y = rand() % this->get_height();
-		int path_length = 1 + rand() % 10;
-		for (unsigned j = 0; j < path_length; j++) {
-			bool direction = rand() % 2;
-			Point head(x, y);
-			direction ? x += 1 : y += 1;
-			Point tail(x, y);
-			PathSegment* new_segment = new PathSegment(head, tail);
-			new_path->add_segment(new_segment);
-		}
-		paths.push_back(new_path);
-	}
-	*/
+Path* Utilities::Map::backtrace(Node* sink, Path* path) {
+
 
 	// first push cur_node onto path
 	// figure out how to do this and we're done
 
-	if (cur_node->get_cost() == -2) {
-		return path;
-	}	
+	//if (cur_node->get_cost() == -2) {
+	//	return path;
+	//}	
 
-	// might be out of bounds stuff now that I think about it t.t
-	// can just use set_x/y_coord if there is an issue
-	Node* up = this->get_node(cur_node->get_x(), cur_node->get_y() + 1);
-	Node* down = this->get_node(cur_node->get_x(), cur_node->get_y() - 1);
+    /* What used to be QQ
 	Node* right = this->get_node(cur_node->get_x() + 1, cur_node->get_y());
 	Node* left = this->get_node(cur_node->get_x() - 1, cur_node->get_y());
-
+    */
+    
     // all we are doing is looking for the current cost - 1, then backtracing from there
-	if ((up->get_cost() == cur_node->get_cost() - 1) || up->get_cost() == -2 ) {	
-		backtrace(up, path);
-	}
-	else if ((down->get_cost() == cur_node->get_cost() - 1) || down->get_cost() == -2) {
-		backtrace(down, path);
-	}
-	else if ((right->get_cost() == cur_node->get_cost() - 1) || right->get_cost() == -2) {
-		backtrace(right, path);
-	}
-	else if ((left->get_cost() == cur_node->get_cost() - 1) || left->get_cost() == -2) {
-		backtrace(left, path);
-	}
-	else {
-		claim("Unknown pathing error occured!", kError);
-		return path;
-	}
+    // rewriting, too many edge cases, looks sloppy
+    /*if (cur_node->get_cost() == -3) // At the sink
+    {
+        
+    }
+    else if ((cur_node->get_y() + 1 < this->get_height()) && 
+        (this->get_node(cur_node->get_x(), cur_node->get_y() + 1)->get_cost() == cur_node->get_cost() -1 ||
+         this->get_node(cur_node->get_x(), cur_node->get_y() + 1)->get_cost() == -2 ))
+    {
+            backtrace(this->get_node(cur_node->get_x(), cur_node->get_y() + 1), path);
+    }    
+    // Down
+    else if ((cur_node->get_y() - 1 > 0 ) && 
+        (this->get_node(cur_node->get_x(), cur_node->get_y() - 1)->get_cost() == cur_node->get_cost() -1 ||
+         this->get_node(cur_node->get_x(), cur_node->get_y() - 1)->get_cost() == -2 ))
+    {
+            backtrace(this->get_node(cur_node->get_x(), cur_node->get_y() - 1), path);
+    }
+    // Right
+    else if ((cur_node->get_x() + 1 < this->get_width()) && 
+        (this->get_node(cur_node->get_x() + 1, cur_node->get_y())->get_cost() == cur_node->get_cost() -1 ||
+         this->get_node(cur_node->get_x() + 1, cur_node->get_y())->get_cost() == -2 ))
+    {
+            backtrace(this->get_node(cur_node->get_x() + 1, cur_node->get_y()), path);
+    }
+    // Left
+    else if ((cur_node->get_x() - 1 > 0 ) && 
+        (this->get_node(cur_node->get_x() - 1, cur_node->get_y())->get_cost() == cur_node->get_cost() -1 ||
+         this->get_node(cur_node->get_x() - 1, cur_node->get_y())->get_cost() == -2 ))
+    {
+            backtrace(this->get_node(cur_node->get_x() - 1, cur_node->get_y()), path);
+    }
+    else {
+        claim("Unknown pathing error occured!", kError);
+        return path;
+    }*/
+    
+    // Check if surrounding of sink is all -1s/0s i.e. there is no solution
+    if (!this->traceable(sink)) {
+        return path;
+    }
+    
+    // TODO: add sink to path
+    int x = sink->get_x();
+    int y = sink->get_y();
+    
+    while(!found_end)
+    {
+        // Up
+        if( y + 1 < this->get_height() && (map.at(x).at(y + 1)->get_cost() == map.at(x).at(y)->get_cost() - 1 
+        || map.at(x).at(y + 1)->get_cost() == -2 ))
+        {
+            // TODO: push node onto path
+            if (map.at(x).at(y + 1)->get_cost() == -2) {
+                found_end = true;
+            }
+            printf("Up\n");
+            y++;
+        }
+        // Down
+        else if( y - 1 > 0 && (map.at(x).at(y - 1)->get_cost() == map.at(x).at(y)->get_cost() - 1 
+        || map.at(x).at(y - 1)->get_cost() == -2 ))
+        {
+            // TODO: push node onto path
+            if (map.at(x).at(y - 1)->get_cost() == -2) {
+                found_end = true;
+            }
+            printf("Down\n");
+            y--;
+        }
+        // Left
+        else if( x - 1 > 0 && (map.at(x - 1).at(y)->get_cost() == map.at(x).at(y)->get_cost() - 1 
+        || map.at(x - 1).at(y)->get_cost() == -2 ))
+        {
+            // TODO: push node onto path
+            if (map.at(x - 1).at(y)->get_cost() == -2) {
+                found_end = true;
+            }
+            printf("Left\n");
+            x--;
+        }
+        // Right
+        else if( x + 1 < this->get_width() && (map.at(x + 1).at(y)->get_cost() == map.at(x).at(y)->get_cost() - 1 
+        || map.at(x + 1).at(y)->get_cost() == -2 ))
+        {
+            // TODO: push node onto path
+            if (map.at(x + 1).at(y)->get_cost() == -2) {
+                found_end = true;
+            }
+            printf("Right\n");
+            x++;
+        }
+        else {
+            claim("Unknown pathing error occured!", kError);
+            return path;
+        }
+    }   
+}
+
+/*
+
+Parameter sink (Node*): The point to begin backtracing
+Return bool: Whether or not there is a searchable path
+
+*/
+bool Utilities::Map::traceable(Node* sink) {
+
+    int x = sink->get_x();
+    int y = sink->get_y();
+    // Goes through and checks if all points around sink are 0/-1
+    if ( y + 1 == this->get_height() || ((map.at(x).at(y + 1)->get_cost() == 0 ||
+       (map.at(x).at(y + 1)->get_cost() == -1)))) {        
+        if ( y - 1 < 0 || ((map.at(x).at(y - 1)->get_cost() == 0 ||
+           (map.at(x).at(y - 1)->get_cost() == -1)))) {
+            if ( x + 1 == this->get_width() || ((map.at(x + 1).at(y)->get_cost() == 0 ||
+               (map.at(x + 1).at(y)->get_cost() == -1)))) {
+                if ( x - 1 < 0 || ((map.at(x - 1).at(y)->get_cost() == 0 ||
+                   (map.at(x - 1).at(y)->get_cost() == -1)))) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
 }
