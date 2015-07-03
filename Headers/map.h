@@ -5,6 +5,7 @@
 #include "path.h"
 #include "problem_object.h"
 #include <vector>
+#include <queue>
 
 using std::cerr;
 using std::endl;
@@ -40,11 +41,11 @@ namespace Utilities {
 		void set_paths(vector<Path*> paths);
 		bool validate_blockers(Blocker block, int max_width, int max_height); // added
 		void set_blockers(vector<Blocker> blockers);    // added
-		bool validate_connections(Connection connections);    //added first
-		// void set_connections(vector<Connection> connections); // don't need...?
-		void wave_expansion(Node* cur_node);	// added
+		bool validate_connections(Connection connections, int path);    //added
+		void wave_expansion(Node* source);	// added
 		Path* backtrace(Node* sink, Path* path);    // added
         bool traceable(Node* sink);    // added
+        bool simple_path(Node* source, Node* sink, int path); //added
 		void add_path(Path* path);
 		void replace_path(int i, Path* path);
 		void remove_path(int i);

@@ -6,10 +6,12 @@
 
 Utilities::Node::Node(int x, int y, int cost):coord(x,y){
       this->cost = cost;
+      this->status = false;
 }
 
 Utilities::Node::Node(Point coord, int cost):coord(coord.x,coord.y){
       this->cost = cost;
+      this->status = false;
 }
 
 Utilities::Node::~Node() {
@@ -101,6 +103,22 @@ void Utilities::Node::add_connection(Edge* connection) {
 void Utilities::Node::set_cost(int cost) {
       this->cost = cost;
 }
+
+// ADDED
+
+/* * 
+ * These set of functions are used to tell if
+ * a node is already within the wave queue
+ * to drastically increase algorithm completion * 
+ */
+void Utilities::Node::set_queue_status(bool status) {
+      this->status = status;
+}
+
+bool Utilities::Node::queue_status() {
+    return this->status;
+}
+
 
 //If an edge occurs multiple times in the connection list, all instances will be removed
 void Utilities::Node::remove_connection(Edge* connection) {

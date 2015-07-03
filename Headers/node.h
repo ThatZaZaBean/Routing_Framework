@@ -17,6 +17,7 @@ namespace Utilities {
             Point coord;
             vector<Edge*> connections;
             int cost;
+            bool status;
 
             /* Private Mutators */
             void add_connection_mirrored(Edge*);
@@ -36,9 +37,11 @@ namespace Utilities {
             bool connections_contains(Edge* edge);
 	        Edge* connections_at(unsigned index);
             int get_cost();
+            bool queue_status(); // added
 
             /* Mutators */
             void set_coord(int x, int y);
+            void set_queue_status(bool status); // added
             void set_x_coord(int x);
             void set_y_coord(int y);
             void set_coord(Point coord);

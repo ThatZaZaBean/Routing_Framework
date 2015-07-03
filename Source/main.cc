@@ -1,5 +1,5 @@
 
-#include "../Headers/Map.h"
+#include "../Headers/map.h"
 #include "../Headers/problem_object.h"
 #include <time.h>
 #include <cstdlib>
@@ -42,8 +42,10 @@ int main(int argc,char* argv[]) {
 	for(unsigned i = 0; i < paths.size(); i++) {
 		cout << "Path " << i << ": ";
 		paths.at(i)->print();
+        printf("Path length: %d (sanity check)", paths.at(i)->size());
 		Path* temp = paths.at(i);
 		delete temp;
+        printf("\n\n");
 	}
 
 	paths.clear();
